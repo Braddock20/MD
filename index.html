@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Umbrella TV - Smooth Floating Rail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+        :root {
+            --bg-dark: #050505;
+            --card-size: 30vh; 
+            --card-gap: 40px;
+            --meta-bottom-clearance: calc(var(--card-size) + 12vh);
+            --panel-bg: rgba(10, 10, 10, 0.95);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+            color: white;
+            touch-action: pan-y;
+        }
+
+        #portrait-shield {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--bg-dark);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (orientation: portrait) {
+            #portrait-shield { display: flex; }
+            #app-viewport { display: none; }
+        }
+
+        #app-viewport {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .bg-layer {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+            transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
+            transform: scale(1.05);
+            will-change: background-image;
+        }
+
+        .bg-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.95) 100%),
+                        linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.9) 100%);
+            z-index: 1;
+        }
+
+        /* Circle Buttons */
+        .top-btn {
+            position: fixed;
+            top: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .top-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+        .top-btn:active { transform: scale(0.95); }
+        #btn-settings { left: 4vw; }
+        #btn-nav { right: 4vw; }
+
+        /* Slide Panels */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            height: 100vh;
+            width: 28vw;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            z-index: 3000;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        #panel-settings { left: 0; transform: translateX(-100%); border-right: 1px solid rgba(255,255,255,0.1); }
+        #panel-nav { right: 0; transform: translateX(100%); border-left: 1px solid rgba(255,255,255,0.1); }
+
+        .side-panel.active { transform: translateX(0); }
+
+        .panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 2500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .panel-overlay.active { opacity: 1; pointer-events: auto; }
+
+        /* Meta Content */
+        #movie-meta {
+            position: absolute;
+            left: 4vw;
+            bottom: var(--meta-bottom-clearance);
+            z-index: 1000; 
+            transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
+            pointer-events: none;
+        }
+
+        #movie-title {
+            font-size: clamp(2rem, 6vh, 4rem);
+            font-weight: 800;
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+            margin-bottom: 8px;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .rail-wrapper {
+            position: absolute;
+            bottom: 0; 
+            left: 0;
+            width: 100%;
+            z-index: 10; 
+        }
+
+        .rail-container {
+            width: 100%;
+            overflow-x: auto;
+            display: flex;
+            align-items: center;
+            scroll-snap-type: x mandatory;
+            padding: 40px calc(50vw - (var(--card-size) / 2)) 20px; 
+            gap: var(--card-gap);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .rail-container::-webkit-scrollbar { display: none; }
+
+        .movie-card {
+            min-width: var(--card-size);
+            max-width: var(--card-size);
+            height: var(--card-size);
+            scroll-snap-align: center;
+            border-radius: 12px;
+            flex-shrink: 0;
+            background: #111;
+            will-change: transform, opacity;
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* UI Components inside panels */
+        .panel-section { margin-bottom: 30px; }
+        .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; margin-bottom: 15px; display: block; }
+        .menu-item { 
+            padding: 12px 16px; 
+            background: rgba(255,255,255,0.03); 
+            border-radius: 8px; 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+
+        .channel-list-item {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="portrait-shield">
+        <h2 class="text-xs font-bold text-white uppercase tracking-widest">Landscape Required</h2>
+    </div>
+
+    <!-- UI Buttons -->
+    <div id="btn-settings" class="top-btn" onclick="togglePanel('panel-settings')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    <div id="btn-nav" class="top-btn" onclick="togglePanel('panel-nav')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/><path d="m11 8 3 3-3 3"/><path d="M8 11h6"/></svg>
+    </div>
+
+    <!-- Overlays -->
+    <div id="panel-overlay" class="panel-overlay" onclick="closeAllPanels()"></div>
+
+    <!-- Settings Panel (Left) -->
+    <div id="panel-settings" class="side-panel">
+        <h3 class="text-xl font-bold mb-8">System Settings</h3>
+        
+        <div class="panel-section">
+            <span class="section-title">Content Filters</span>
+            <div class="menu-item">Movies & Series</div>
+            <div class="menu-item">Sports Only</div>
+            <div class="menu-item">News & Weather</div>
+            <div class="menu-item">Documentaries</div>
+        </div>
+
+        <div class="panel-section">
+            <span class="section-title">TV Configuration</span>
+            <div class="menu-item">Picture Mode: Vivid</div>
+            <div class="menu-item">Audio Output: Surround</div>
+            <div class="menu-item">Parental Controls</div>
+            <div class="menu-item">Sleep Timer</div>
+        </div>
+    </div>
+
+    <!-- Navigation Panel (Right) -->
+    <div id="panel-nav" class="side-panel">
+        <h3 class="text-xl font-bold mb-8">Navigation</h3>
+        
+        <div class="panel-section">
+            <div class="menu-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                Search Channels
+            </div>
+            <div class="menu-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M6 12h.01"/><path d="M18 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M8 16h8"/></svg>
+                Input Channel Number
+            </div>
+            <div class="menu-item" onclick="toggleDiscover()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M2 12h20"/><path d="m4.93 4.93 14.14 14.14"/><path d="m4.93 19.07 14.14-14.14"/></svg>
+                Discover Channels
+            </div>
+        </div>
+
+        <div id="discover-list" class="hidden mt-6 overflow-y-auto max-h-[50vh]">
+            <span class="section-title">Live Channel List</span>
+            <div class="channel-list-item"><span>101 - BBC World</span> <span class="opacity-40">NEWS</span></div>
+            <div class="channel-list-item"><span>102 - ESPN Plus</span> <span class="opacity-40">SPORTS</span></div>
+            <div class="channel-list-item"><span>103 - HBO Max</span> <span class="opacity-40">MOVIES</span></div>
+            <div class="channel-list-item"><span>104 - Umbrella One</span> <span class="opacity-40">GEN</span></div>
+            <div class="channel-list-item"><span>105 - Nat Geo</span> <span class="opacity-40">DOCS</span></div>
+            <div class="channel-list-item"><span>106 - Sky News</span> <span class="opacity-40">NEWS</span></div>
+            <div class="channel-list-item"><span>107 - Disney+</span> <span class="opacity-40">KIDS</span></div>
+        </div>
+    </div>
+
+    <div id="app-viewport">
+        <div class="bg-layer" id="main-bg"></div>
+        <div class="bg-overlay"></div>
+
+        <div id="movie-meta">
+            <div class="flex items-center gap-3 mb-4 opacity-60 text-xs font-bold tracking-widest uppercase">
+                <span id="current-time">12:00 PM</span>
+                <span>•</span>
+                <span>CH 104</span>
+            </div>
+            <h2 id="movie-title"></h2>
+            <span id="genre-label"></span>
+        </div>
+
+        <div class="rail-wrapper">
+            <div class="rail-container no-scrollbar" id="rail">
+                <div class="movie-card" data-title="Cosmic Drifters" data-genre="Sci-Fi • Ep. 12 Space Adventure" data-bg="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?auto=format&fit=crop&q=80&w=1600">
+                    <img src="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?auto=format&fit=crop&q=80&w=600">
+                </div>
+                <div class="movie-card" data-title="Neon Horizon" data-genre="Cyberpunk • S1 Thriller" data-bg="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=1600">
+                    <img src="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=600">
+                </div>
+                <div class="movie-card" data-title="Silent Tides" data-genre="Documentary • Deep Sea Nature" data-bg="https://images.unsplash.com/photo-1518131359149-83bd60045585?auto=format&fit=crop&q=80&w=1600">
+                    <img src="https://images.unsplash.com/photo-1518131359149-83bd60045585?auto=format&fit=crop&q=80&w=600">
+                </div>
+                <div class="movie-card" data-title="Aero Peak" data-genre="Action • High Altitude Sports" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1600">
+                    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=600">
+                </div>
+                <div class="movie-card" data-title="Urban Echo" data-genre="Drama • Modern Mystery" data-bg="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&q=80&w=1600">
+                    <img src="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&q=80&w=600">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rail = document.getElementById('rail');
+        const cards = document.querySelectorAll('.movie-card');
+        const mainBg = document.getElementById('main-bg');
+        const movieMeta = document.getElementById('movie-meta');
+        const movieTitle = document.getElementById('movie-title');
+        const genreLabel = document.getElementById('genre-label');
+        const timeDisplay = document.getElementById('current-time');
+        
+        let lastFocusedIndex = -1;
+
+        function updateTime() {
+            const now = new Date();
+            timeDisplay.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Panel Logic
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const overlay = document.getElementById('panel-overlay');
+            const isActive = panel.classList.contains('active');
+            
+            closeAllPanels();
+            
+            if (!isActive) {
+                panel.classList.add('active');
+                overlay.classList.add('active');
+            }
+        }
+
+        function closeAllPanels() {
+            document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-overlay').classList.remove('active');
+        }
+
+        function toggleDiscover() {
+            const list = document.getElementById('discover-list');
+            list.classList.toggle('hidden');
+        }
+
+        function updateLayout() {
+            const centerX = window.innerWidth / 2;
+            let closestIndex = 0;
+            let minDistance = Infinity;
+
+            cards.forEach((card, index) => {
+                const rect = card.getBoundingClientRect();
+                const cardCenterX = rect.left + rect.width / 2;
+                const distance = Math.abs(cardCenterX - centerX);
+                
+                const maxEffectDistance = window.innerWidth / 2;
+                const normalizedDistance = Math.min(distance / maxEffectDistance, 1);
+                
+                const scale = 1.25 - (normalizedDistance * 0.45);
+                const opacity = 1.0 - (normalizedDistance * 0.6);
+                const translateY = -12 * (1 - normalizedDistance);
+
+                card.style.transform = `scale(${scale}) translateY(${translateY}px)`;
+                card.style.opacity = opacity;
+                card.style.zIndex = Math.round(100 - normalizedDistance * 100);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIndex = index;
+                }
+            });
+
+            if (closestIndex !== lastFocusedIndex) {
+                lastFocusedIndex = closestIndex;
+                const card = cards[closestIndex];
+                const { title, genre, bg } = card.dataset;
+                
+                mainBg.style.backgroundImage = `url('${bg}')`;
+                
+                movieMeta.style.opacity = '0';
+                movieMeta.style.transform = 'translateX(-20px)';
+                
+                setTimeout(() => {
+                    movieTitle.innerText = title;
+                    genreLabel.innerText = genre;
+                    movieMeta.style.opacity = '1';
+                    movieMeta.style.transform = 'translateX(0)';
+                }, 200);
+            }
+        }
+
+        rail.addEventListener('scroll', () => {
+            window.requestAnimationFrame(updateLayout);
+        });
+
+        rail.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                rail.scrollLeft += e.deltaY;
+            }
+        });
+
+        window.onload = () => {
+            updateLayout();
+            updateTime();
+            setInterval(updateTime, 1000);
+        };
+
+        window.addEventListener('resize', updateLayout);
+    </script>
+</body>
+</html>
+
