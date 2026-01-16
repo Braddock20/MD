@@ -1,5 +1,8 @@
 {
   "name": "json",
   "main": "src/index.js",
-  "compatibility_date": "2026-01-16"
+  "compatibility_date": "2026-01-16",
+  "assets": {
+    "directory": "."
+  }
 }
