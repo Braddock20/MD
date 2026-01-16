@@ -1,5 +1,5 @@
 {
-  "name": "json-worker",
+  "name": "json",
   "compatibility_date": "2026-01-16",
   "assets": {
     "directory": "."
