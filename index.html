@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Umbrella TV - Smooth Floating Rail</title>
+    <title>Umbrella TV - Dynamic</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
@@ -73,7 +73,6 @@
             z-index: 1;
         }
 
-        /* Circle Buttons */
         .top-btn {
             position: fixed;
             top: 30px;
@@ -92,11 +91,9 @@
         }
 
         .top-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
-        .top-btn:active { transform: scale(0.95); }
         #btn-settings { left: 4vw; }
         #btn-nav { right: 4vw; }
 
-        /* Slide Panels */
         .side-panel {
             position: fixed;
             top: 0;
@@ -112,7 +109,6 @@
 
         #panel-settings { left: 0; transform: translateX(-100%); border-right: 1px solid rgba(255,255,255,0.1); }
         #panel-nav { right: 0; transform: translateX(100%); border-left: 1px solid rgba(255,255,255,0.1); }
-
         .side-panel.active { transform: translateX(0); }
 
         .panel-overlay {
@@ -126,7 +122,6 @@
         }
         .panel-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* Meta Content */
         #movie-meta {
             position: absolute;
             left: 4vw;
@@ -163,6 +158,7 @@
             padding: 40px calc(50vw - (var(--card-size) / 2)) 20px; 
             gap: var(--card-gap);
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
 
         .rail-container::-webkit-scrollbar { display: none; }
@@ -176,6 +172,10 @@
             flex-shrink: 0;
             background: #111;
             will-change: transform, opacity;
+            cursor: pointer;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+            position: relative;
         }
 
         .movie-card img {
@@ -185,34 +185,34 @@
             border-radius: 12px;
         }
 
-        /* UI Components inside panels */
-        .panel-section { margin-bottom: 30px; }
-        .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; margin-bottom: 15px; display: block; }
-        .menu-item { 
-            padding: 12px 16px; 
-            background: rgba(255,255,255,0.03); 
-            border-radius: 8px; 
-            margin-bottom: 8px; 
-            font-size: 14px; 
-            font-weight: 600;
-            cursor: pointer;
+        #loading-state {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 5000;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
-            transition: all 0.2s ease;
+            justify-content: center;
+            transition: opacity 0.5s ease;
         }
-        .menu-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
 
         .channel-list-item {
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        .channel-list-item:hover { background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
+
+    <div id="loading-state">
+        <div class="text-xs font-bold tracking-[0.3em] uppercase animate-pulse mb-2">Syncing Channels</div>
+        <div id="loading-path" class="text-[10px] opacity-40 font-mono"></div>
+    </div>
 
     <div id="portrait-shield">
         <h2 class="text-xs font-bold text-white uppercase tracking-widest">Landscape Required</h2>
@@ -220,143 +220,139 @@
 
     <!-- UI Buttons -->
     <div id="btn-settings" class="top-btn" onclick="togglePanel('panel-settings')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </div>
     <div id="btn-nav" class="top-btn" onclick="togglePanel('panel-nav')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/><path d="m11 8 3 3-3 3"/><path d="M8 11h6"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
     </div>
 
-    <!-- Overlays -->
     <div id="panel-overlay" class="panel-overlay" onclick="closeAllPanels()"></div>
 
-    <!-- Settings Panel (Left) -->
+    <!-- Side Panels -->
     <div id="panel-settings" class="side-panel">
-        <h3 class="text-xl font-bold mb-8">System Settings</h3>
-        
-        <div class="panel-section">
-            <span class="section-title">Content Filters</span>
-            <div class="menu-item">Movies & Series</div>
-            <div class="menu-item">Sports Only</div>
-            <div class="menu-item">News & Weather</div>
-            <div class="menu-item">Documentaries</div>
-        </div>
-
-        <div class="panel-section">
-            <span class="section-title">TV Configuration</span>
-            <div class="menu-item">Picture Mode: Vivid</div>
-            <div class="menu-item">Audio Output: Surround</div>
-            <div class="menu-item">Parental Controls</div>
-            <div class="menu-item">Sleep Timer</div>
-        </div>
+        <h3 class="text-xl font-bold mb-8">Settings</h3>
+        <p class="text-xs opacity-50 mb-4">You can change the JSON path in the code variables.</p>
+        <button onclick="location.reload()" class="w-full py-3 bg-white/10 rounded-lg font-bold">Refresh App</button>
     </div>
 
-    <!-- Navigation Panel (Right) -->
     <div id="panel-nav" class="side-panel">
-        <h3 class="text-xl font-bold mb-8">Navigation</h3>
-        
-        <div class="panel-section">
-            <div class="menu-item">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                Search Channels
-            </div>
-            <div class="menu-item">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M6 12h.01"/><path d="M18 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M8 16h8"/></svg>
-                Input Channel Number
-            </div>
-            <div class="menu-item" onclick="toggleDiscover()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M2 12h20"/><path d="m4.93 4.93 14.14 14.14"/><path d="m4.93 19.07 14.14-14.14"/></svg>
-                Discover Channels
-            </div>
-        </div>
-
-        <div id="discover-list" class="hidden mt-6 overflow-y-auto max-h-[50vh]">
-            <span class="section-title">Live Channel List</span>
-            <div class="channel-list-item"><span>101 - BBC World</span> <span class="opacity-40">NEWS</span></div>
-            <div class="channel-list-item"><span>102 - ESPN Plus</span> <span class="opacity-40">SPORTS</span></div>
-            <div class="channel-list-item"><span>103 - HBO Max</span> <span class="opacity-40">MOVIES</span></div>
-            <div class="channel-list-item"><span>104 - Umbrella One</span> <span class="opacity-40">GEN</span></div>
-            <div class="channel-list-item"><span>105 - Nat Geo</span> <span class="opacity-40">DOCS</span></div>
-            <div class="channel-list-item"><span>106 - Sky News</span> <span class="opacity-40">NEWS</span></div>
-            <div class="channel-list-item"><span>107 - Disney+</span> <span class="opacity-40">KIDS</span></div>
-        </div>
+        <h3 class="text-xl font-bold mb-4">Quick Select</h3>
+        <div id="side-list" class="overflow-y-auto max-h-[80vh] pr-2"></div>
     </div>
 
+    <!-- Main Viewport -->
     <div id="app-viewport">
         <div class="bg-layer" id="main-bg"></div>
         <div class="bg-overlay"></div>
 
         <div id="movie-meta">
             <div class="flex items-center gap-3 mb-4 opacity-60 text-xs font-bold tracking-widest uppercase">
-                <span id="current-time">12:00 PM</span>
+                <span id="current-time">00:00 AM</span>
                 <span>•</span>
-                <span>CH 104</span>
+                <span id="meta-category">LIVE TV</span>
             </div>
-            <h2 id="movie-title"></h2>
-            <span id="genre-label"></span>
+            <h2 id="movie-title">---</h2>
+            <span id="genre-label" class="text-sm opacity-50 font-medium tracking-wide">Connecting...</span>
         </div>
 
         <div class="rail-wrapper">
-            <div class="rail-container no-scrollbar" id="rail">
-                <div class="movie-card" data-title="Cosmic Drifters" data-genre="Sci-Fi • Ep. 12 Space Adventure" data-bg="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?auto=format&fit=crop&q=80&w=1600">
-                    <img src="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?auto=format&fit=crop&q=80&w=600">
-                </div>
-                <div class="movie-card" data-title="Neon Horizon" data-genre="Cyberpunk • S1 Thriller" data-bg="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=1600">
-                    <img src="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&q=80&w=600">
-                </div>
-                <div class="movie-card" data-title="Silent Tides" data-genre="Documentary • Deep Sea Nature" data-bg="https://images.unsplash.com/photo-1518131359149-83bd60045585?auto=format&fit=crop&q=80&w=1600">
-                    <img src="https://images.unsplash.com/photo-1518131359149-83bd60045585?auto=format&fit=crop&q=80&w=600">
-                </div>
-                <div class="movie-card" data-title="Aero Peak" data-genre="Action • High Altitude Sports" data-bg="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=1600">
-                    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=600">
-                </div>
-                <div class="movie-card" data-title="Urban Echo" data-genre="Drama • Modern Mystery" data-bg="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&q=80&w=1600">
-                    <img src="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&q=80&w=600">
-                </div>
-            </div>
+            <div class="rail-container" id="rail"></div>
         </div>
     </div>
 
     <script>
+        /**
+         * CONFIGURATION
+         * Change 'JSON_URL' to your folder path or web link.
+         * Example: 'data/channels.json' or 'https://mysite.com/list.json'
+         */
+        const JSON_URL = 'clear_playlist.json'; 
+
+        // Initial Sample data for fallback if the file isn't found
+        const fallbackData = [
+            { "n": "HBO HD", "u": "#", "l": "https://images.unsplash.com/photo-1574375927938-d5a98e898ad7?w=800", "g": "Movies" },
+            { "n": "BBC News", "u": "#", "l": "https://images.unsplash.com/photo-1585829365234-781fdfc4190d?w=800", "g": "News" },
+            { "n": "ESPN Sports", "u": "#", "l": "https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=800", "g": "Sports" }
+        ];
+
+        let channels = [];
+        let lastFocusedIndex = -1;
+
         const rail = document.getElementById('rail');
-        const cards = document.querySelectorAll('.movie-card');
         const mainBg = document.getElementById('main-bg');
         const movieMeta = document.getElementById('movie-meta');
         const movieTitle = document.getElementById('movie-title');
         const genreLabel = document.getElementById('genre-label');
         const timeDisplay = document.getElementById('current-time');
-        
-        let lastFocusedIndex = -1;
+        const sideList = document.getElementById('side-list');
 
-        function updateTime() {
-            const now = new Date();
-            timeDisplay.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+        async function initApp() {
+            document.getElementById('loading-path').innerText = `Fetching: ${JSON_URL}`;
+            
+            try {
+                const response = await fetch(JSON_URL);
+                if (!response.ok) throw new Error('Not found');
+                const rawData = await response.json();
+                
+                // MAP: Convert shorthand JSON to full properties
+                channels = rawData.map(item => ({
+                    name: item.n,
+                    url: item.u,
+                    logo: item.l,
+                    group: item.g
+                }));
 
-        // Panel Logic
-        function togglePanel(panelId) {
-            const panel = document.getElementById(panelId);
-            const overlay = document.getElementById('panel-overlay');
-            const isActive = panel.classList.contains('active');
-            
-            closeAllPanels();
-            
-            if (!isActive) {
-                panel.classList.add('active');
-                overlay.classList.add('active');
+            } catch (err) {
+                console.warn("Pull failed, using internal sample.");
+                channels = fallbackData.map(item => ({
+                    name: item.n,
+                    url: item.u,
+                    logo: item.l,
+                    group: item.g
+                }));
             }
+
+            renderUI();
         }
 
-        function closeAllPanels() {
-            document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-overlay').classList.remove('active');
-        }
+        function renderUI() {
+            rail.innerHTML = '';
+            sideList.innerHTML = '';
 
-        function toggleDiscover() {
-            const list = document.getElementById('discover-list');
-            list.classList.toggle('hidden');
+            channels.forEach((ch, idx) => {
+                // 1. Build Rail Card
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.innerHTML = `<img src="${ch.logo}" alt="" onerror="this.src='https://via.placeholder.com/400x400/111/fff?text=${ch.name}'">`;
+                card.onclick = () => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    console.log("Playing:", ch.url);
+                };
+                rail.appendChild(card);
+
+                // 2. Build Sidebar Link
+                const item = document.createElement('div');
+                item.className = 'channel-list-item';
+                item.innerHTML = `<div class="font-bold">${ch.name}</div><div class="text-[10px] opacity-40">${ch.group}</div>`;
+                item.onclick = () => {
+                    closeAllPanels();
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                };
+                sideList.appendChild(item);
+            });
+
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading-state').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-state').remove(), 500);
+                updateLayout();
+            }, 500);
         }
 
         function updateLayout() {
+            const cards = document.querySelectorAll('.movie-card');
+            if (cards.length === 0) return;
+
             const centerX = window.innerWidth / 2;
             let closestIndex = 0;
             let minDistance = Infinity;
@@ -366,12 +362,13 @@
                 const cardCenterX = rect.left + rect.width / 2;
                 const distance = Math.abs(cardCenterX - centerX);
                 
+                // Visual scaling based on distance from center
                 const maxEffectDistance = window.innerWidth / 2;
                 const normalizedDistance = Math.min(distance / maxEffectDistance, 1);
                 
-                const scale = 1.25 - (normalizedDistance * 0.45);
-                const opacity = 1.0 - (normalizedDistance * 0.6);
-                const translateY = -12 * (1 - normalizedDistance);
+                const scale = 1.3 - (normalizedDistance * 0.4);
+                const opacity = 1.0 - (normalizedDistance * 0.7);
+                const translateY = -20 * (1 - normalizedDistance);
 
                 card.style.transform = `scale(${scale}) translateY(${translateY}px)`;
                 card.style.opacity = opacity;
@@ -383,43 +380,55 @@
                 }
             });
 
+            // Update Metadata if center focus changed
             if (closestIndex !== lastFocusedIndex) {
                 lastFocusedIndex = closestIndex;
-                const card = cards[closestIndex];
-                const { title, genre, bg } = card.dataset;
+                const ch = channels[closestIndex];
                 
-                mainBg.style.backgroundImage = `url('${bg}')`;
+                mainBg.style.backgroundImage = `url('${ch.logo}')`;
                 
                 movieMeta.style.opacity = '0';
                 movieMeta.style.transform = 'translateX(-20px)';
                 
                 setTimeout(() => {
-                    movieTitle.innerText = title;
-                    genreLabel.innerText = genre;
+                    movieTitle.innerText = ch.name;
+                    genreLabel.innerText = `${ch.group} • High Definition`;
                     movieMeta.style.opacity = '1';
                     movieMeta.style.transform = 'translateX(0)';
-                }, 200);
+                }, 150);
             }
         }
 
-        rail.addEventListener('scroll', () => {
-            window.requestAnimationFrame(updateLayout);
-        });
-
-        rail.addEventListener('wheel', (e) => {
-            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-                e.preventDefault();
-                rail.scrollLeft += e.deltaY;
+        // UI Helpers
+        function togglePanel(id) {
+            const panel = document.getElementById(id);
+            const isActive = panel.classList.contains('active');
+            closeAllPanels();
+            if(!isActive) {
+                panel.classList.add('active');
+                document.getElementById('panel-overlay').classList.add('active');
             }
-        });
+        }
+
+        function closeAllPanels() {
+            document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-overlay').classList.remove('active');
+        }
+
+        function updateTime() {
+            const now = new Date();
+            timeDisplay.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Listeners
+        rail.addEventListener('scroll', () => window.requestAnimationFrame(updateLayout));
+        window.addEventListener('resize', updateLayout);
 
         window.onload = () => {
-            updateLayout();
+            initApp();
             updateTime();
             setInterval(updateTime, 1000);
         };
-
-        window.addEventListener('resize', updateLayout);
     </script>
 </body>
 </html>
