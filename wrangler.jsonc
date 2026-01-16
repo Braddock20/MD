@@ -1,6 +1,6 @@
 {
   "name": "json",
-  "main": "src/index.js",
+  "main": "worker_playlist_1768571829366.js",
   "compatibility_date": "2026-01-16",
   "assets": {
     "directory": "."
